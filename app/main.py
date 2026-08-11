@@ -5,7 +5,9 @@ from app.config.settings import get_settings
 from app.config.logging_config import configure_logging
 from app.db.database import engine
 from app.db.models import Base
-from app.api import health
+from app.api import health, assets, market
+from app.workers.scheduler import start_scheduler, shutdown_scheduler
+from app.workers.market_ingestion import start_market_ingestion, stop_market_ingestion
 import logging
 
 # Configure logging
@@ -15,8 +17,21 @@ logger = logging.getLogger(__name__)
 # Initialize settings
 settings = get_settings()
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables. In real deployments docker-compose's healthcheck
+# guarantees Postgres is up before the app container starts. When the app
+# module is imported without a reachable database (e.g. unit tests, which
+# use their own isolated SQLite engine via dependency overrides), we log and
+# continue instead of crashing at import time -- this is not a request-path
+# failure, so it doesn't need the full graceful-degradation machinery used
+# for external services at runtime.
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as exc:  # noqa: BLE001
+    logging.getLogger(__name__).warning(
+        "Skipping create_all at startup: database unreachable (%s). "
+        "This is expected in test environments with an isolated test DB.",
+        exc,
+    )
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -36,6 +51,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router)
+app.include_router(assets.router)
+app.include_router(market.router)
 
 # Root endpoint
 @app.get("/")
@@ -55,11 +72,20 @@ async def startup_event():
     logger.info(f"Environment: {settings.app_env}")
     logger.info(f"Debug mode: {settings.debug}")
 
+    # Don't run background jobs (hourly MEXC sync, market ingestion, etc.)
+    # under the test suite.
+    if settings.app_env != "testing":
+        start_scheduler()
+        await start_market_ingestion()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown event."""
     logger.info("Market Intelligence Trading Signal System shutting down")
+    if settings.app_env != "testing":
+        shutdown_scheduler()
+        await stop_market_ingestion()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 """Health check endpoint."""
 from fastapi import APIRouter, Depends
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from redis import Redis
 from app.db.database import get_db
@@ -38,7 +39,7 @@ async def health_check(db: Session = Depends(get_db)):
     
     # Check database connectivity
     try:
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         health_status["database"] = "ok"
     except Exception as e:
         health_status["status"] = "degraded"

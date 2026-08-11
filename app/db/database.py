@@ -34,7 +34,14 @@ def get_db() -> Session:
 
 @event.listens_for(engine, "connect")
 def receive_connect(dbapi_conn, connection_record):
-    """Configure connection on connect event."""
+    """Configure connection on connect event.
+
+    'SET search_path' is Postgres-specific syntax; skip it for other
+    dialects (e.g. SQLite, used by the test suite / local scripts) so the
+    same engine construction code works everywhere.
+    """
+    if engine.dialect.name != "postgresql":
+        return
     cursor = dbapi_conn.cursor()
     cursor.execute("SET search_path TO public")
     cursor.close()
