@@ -1,61 +1,66 @@
-"""Pytest configuration and fixtures."""
 import os
+
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from app.db.models import Base
-from app.config.settings import Settings
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+# Ensure the app boots in test mode without background jobs or external services.
+os.environ.setdefault("APP_ENV", "testing")
+
+from app.api import assets as assets_api, health as health_api, market as market_api
+from app.db.database import get_db
+from app.db.models import Base
 from app.main import app
 
 
-@pytest.fixture(scope="session")
-def test_settings():
-    """Test settings with in-memory SQLite database."""
-    return Settings(
-        database_url="sqlite:///:memory:",
-        redis_url="redis://localhost:6379/1",  # Use separate DB for testing
-        app_env="testing",
-        debug=True,
-    )
-
-
-@pytest.fixture(scope="session")
-def test_engine(test_settings):
-    """Create test database engine."""
+@pytest.fixture()
+def test_engine():
     engine = create_engine(
-        test_settings.database_url,
-        connect_args={"check_same_thread": False} if "sqlite" in test_settings.database_url else {},
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     Base.metadata.create_all(bind=engine)
-    yield engine
-    Base.metadata.drop_all(bind=engine)
+    try:
+        yield engine
+    finally:
+        engine.dispose()
 
 
-@pytest.fixture
+@pytest.fixture()
 def db_session(test_engine):
-    """Create a new database session for each test."""
-    connection = test_engine.connect()
-    transaction = connection.begin()
-    session = sessionmaker(autocommit=False, autoflush=False, bind=connection)()
-    
-    yield session
-    
-    session.close()
-    transaction.rollback()
-    connection.close()
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+    session = TestingSessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
-@pytest.fixture
-def client(db_session):
-    """FastAPI test client with test database session."""
+@pytest.fixture()
+def db(db_session):
+    yield db_session
+
+
+@pytest.fixture()
+def client(db_session, monkeypatch):
     def override_get_db():
-        yield db_session
-    
-    from app.db.database import get_db
-    app.dependency_overrides[get_db] = override_get_db
-    
-    test_client = TestClient(app)
-    yield test_client
-    
+        try:
+            yield db_session
+        finally:
+            pass
+
+    app.dependency_overrides.update({
+        get_db: override_get_db,
+        assets_api.get_db: override_get_db,
+        market_api.get_db: override_get_db,
+        health_api.get_db: override_get_db,
+    })
+    monkeypatch.setattr(health_api, "get_redis_connection", lambda: type("RedisStub", (), {"ping": lambda self: True})())
+
+    with TestClient(app) as test_client:
+        yield test_client
+
     app.dependency_overrides.clear()

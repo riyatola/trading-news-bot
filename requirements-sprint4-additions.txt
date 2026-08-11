@@ -1,0 +1,10 @@
+# New dependencies introduced by Sprint 4 (News Ingestion).
+# Merge into the project's main requirements.txt.
+
+feedparser>=6.0        # Company IR RSS feed parsing
+pytest-asyncio>=0.23   # dev/test only: enables @pytest.mark.asyncio tests
+
+# Already relied on elsewhere in the codebase (app/market/mexc.py) and
+# reused here for the NewsAPI + SEC EDGAR clients -- listed for
+# completeness in case requirements.txt doesn't already have it:
+httpx>=0.27

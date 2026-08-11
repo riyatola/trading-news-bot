@@ -89,6 +89,25 @@ class SourceAccount(Base):
     __table_args__ = (UniqueConstraint('source_id', 'account_id', name='unique_source_account'),)
 
 
+class DeadLetterEvent(Base):
+    """Ingestion failures that exhausted retries (Sprint 4).
+
+    Recorded instead of silently dropping a source's poll cycle, per the
+    project's "no silent failures" principle. Reviewed manually and not
+    auto-retried -- a persistently-failing adapter (e.g. an expired API
+    key or a renamed IR feed URL) needs a human, not a tighter retry loop.
+    """
+    __tablename__ = "dead_letter_events"
+
+    id = Column(Integer, primary_key=True)
+    source_name = Column(String(255), nullable=False, index=True)
+    source_type = Column(String(50), nullable=False, index=True)
+    error_message = Column(Text, nullable=False)
+    attempts = Column(Integer, default=0)
+    occurred_at = Column(DateTime, default=datetime.utcnow, index=True)
+    resolved = Column(Boolean, default=False, index=True)
+
+
 class RawEvent(Base):
     """Immutable raw event storage (never delete; foundation for auditing and reprocessing)."""
     __tablename__ = "raw_events"
@@ -325,6 +344,27 @@ class ThesisAsset(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     __table_args__ = (UniqueConstraint('thesis_id', 'asset_id', name='unique_thesis_asset'),)
+
+
+class AISpendLog(Base):
+    """One row per successful LLM analysis call (Sprint 5).
+
+    Used purely for cost accounting -- `app.intelligence.cost_tracker`
+    sums `cost_usd` for the current UTC day against the configured daily
+    cap (system_config key 'ai_daily_spend_cap_usd', falling back to
+    Settings.ai_daily_spend_cap_usd) before allowing another LLM call.
+    Kept append-only, mirroring raw_events' immutability -- it's also the
+    audit trail for "why did we spend what we spent."
+    """
+    __tablename__ = "ai_spend_log"
+
+    id = Column(Integer, primary_key=True)
+    event_id = Column(String(100), ForeignKey("events.id"), nullable=False, index=True)
+    model = Column(String(100), nullable=False)
+    prompt_tokens = Column(Integer, nullable=False, default=0)
+    completion_tokens = Column(Integer, nullable=False, default=0)
+    cost_usd = Column(Float, nullable=False, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
 class ThesisEvidence(Base):

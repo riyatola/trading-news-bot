@@ -8,6 +8,7 @@ from app.db.models import Base
 from app.api import health, assets, market
 from app.workers.scheduler import start_scheduler, shutdown_scheduler
 from app.workers.market_ingestion import start_market_ingestion, stop_market_ingestion
+from app.workers.news_ingestion import start_news_ingestion
 import logging
 
 # Configure logging
@@ -77,6 +78,11 @@ async def startup_event():
     if settings.app_env != "testing":
         start_scheduler()
         await start_market_ingestion()
+        # News ingestion has no persistent connection to hold (unlike
+        # market data's WebSocket) -- this just builds the adapter set so
+        # the scheduled poll job (every few minutes) has it ready. Safe to
+        # call even if it later gets initialized lazily by the job itself.
+        await start_news_ingestion()
 
 
 @app.on_event("shutdown")

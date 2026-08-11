@@ -36,8 +36,23 @@ class TelegramError(ExternalServiceError):
     pass
 
 
+class SECEDGARError(ExternalServiceError):
+    """Raised when SEC EDGAR full-text search requests fail."""
+    pass
+
+
+class RSSFeedError(ExternalServiceError):
+    """Raised when a company IR RSS feed can't be fetched or parsed."""
+    pass
+
+
 class OpenAIError(ExternalServiceError):
     """Raised when OpenAI API calls fail."""
+    pass
+
+
+class XAPIError(ExternalServiceError):
+    """Raised when X (Twitter) API calls fail (Sprint 7)."""
     pass
 
 

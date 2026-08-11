@@ -114,6 +114,8 @@ cp .env.example .env
 - `DATABASE_URL`: PostgreSQL connection string
 - `REDIS_URL`: Redis connection URL
 - `OPENAI_API_KEY`: OpenAI API key (for structured outputs)
+- `OPENAI_MODEL`: Chat completions model used for event analysis (default `gpt-4o-mini`)
+- `AI_DAILY_SPEND_CAP_USD`: Hard daily cap on LLM spend (default `100.0`); also editable at runtime via the `system_config` table (key `ai_daily_spend_cap_usd`)
 - `MEXC_API_KEY`, `MEXC_API_SECRET`: MEXC market data API (read-only)
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`: Telegram bot credentials
 - `NEWS_API_KEY`: Financial news API (NewsAPI or equivalent)
@@ -222,6 +224,7 @@ pytest -v
 - **macro_snapshots**: Macro data (rates, inflation, employment, FX, etc.)
 - **opportunities**: LONG/SHORT/MACRO scores with components
 - **alerts**: Telegram alerts with delivery status
+- **ai_spend_log**: Per-call LLM token usage + estimated USD cost, for daily-cap enforcement (Sprint 5)
 - **theses**: User-created investment theses
 - **thesis_assets**: Assets relevant to theses
 - **thesis_evidence**: Supporting/contradicting evidence
