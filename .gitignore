@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Testing & coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Database (SQLite local)
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# APScheduler / job state
+jobs/
+scheduler_state.*
+
+# Jupyter (if any)
+.ipynb_checkpoints/
+
+# mypy / typing
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytest_cache/
+
+# Migration scratch
+migrations/versions/__pycache__/
+
+# Alembic
+alembic/versions/*.pyc

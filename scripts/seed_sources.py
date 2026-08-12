@@ -21,10 +21,57 @@ from app.db.models import Base, Source, SourceAccount
 logger = logging.getLogger(__name__)
 
 # (name, source_type, credibility_tier, credibility_score, description)
+# Sprint 7 + Aug-2026 reality: X (Twitter) is DEPRECATED. StockTwits closed
+# new developer signups (api.stocktwits.com/developers). Quiver Quantitative
+# is now paid-only (~$30/mo). New recommended free/actually-signup-able
+# social stack: Finnhub Social Sentiment + ApeWisdom + Reddit.
+#
+# Ordering mirrors _build_default_adapters() in app/workers/news_ingestion.py.
 SEED_SOURCES: list[tuple[str, str, int, float, str]] = [
-    ("NewsAPI", "news", 2, 0.75, "Aggregated wire/publisher news via NewsAPI.org"),
+    ("Finnhub", "news", 2, 0.75, "Ticker-scoped company news via Finnhub.io company-news API"),
+    # Finnhub Social: free tier on your existing FINNHUB_API_KEY. Same 60
+    # req/min pool as the company-news endpoint, 1 extra req/ticker per poll.
+    # Emits per-ticker Reddit + X mention counts + a weighted -1..1 sentiment.
+    ("Finnhub Social", "news_social", 3, 0.55,
+     "Aggregated Reddit + X mention counts and weighted sentiment score (-1..1) "
+     "via Finnhub /stock/social-sentiment endpoint. $0 extra cost on your "
+     "existing Finnhub free 60 req/min plan. Enabled by default in system_config. "
+     "1 extra request per tracked ticker per poll cycle."),
     ("SEC EDGAR", "sec", 1, 0.9, "SEC EDGAR full-text filing search (8-K, 10-K)"),
     ("Company IR", "company_ir", 1, 0.9, "Company investor-relations RSS feeds"),
+    # ApeWisdom: FREE, no signup, NO API KEY needed. Top-ranked r/wallstreetbets
+    # + 4chan /biz/ mention counts with 24h rank deltas and bull/bear/SPY
+    # proportions. DIRECT REPLACEMENT for direct StockTwits adapter (which is
+    # closed to new signups as of Aug 2026).
+    ("ApeWisdom WSB", "apewisdom", 3, 0.55,
+     "r/wallstreetbets + 4chan /biz/ mention counts, 24h rank deltas, and "
+     "bull/bear/SPY sentiment proportions per tracked ticker. Free, no "
+     "signup, no API key required — just flip apewisdom_integration_enabled "
+     "on in system_config. Replaces direct StockTwits adapter for new "
+     "deployments (StockTwits closed new signups Aug 2026)."),
+    # Reddit: raw posts from WSB / r/stocks / r/investing with $TICKER +
+    # tracked-ticker allowlist regex extraction in the adapter.
+    ("Reddit", "reddit", 3, 0.5,
+     "Retail sentiment via r/wallstreetbets, r/stocks, r/investing newest-post streams. "
+     "Tracked-ticker mentions extracted with $TICKER + allowlist regex in adapter. "
+     "Free OAuth tier (script app): 60 req/min. Create app at reddit.com/prefs/apps."),
+    # Quiver: unique regulatory signals (congress trades, Form 4 insider trades
+    # parsed, WSB aggregates, Google Trends). PAID-ONLY as of Aug 2026 (~$30/mo).
+    # Overall tier 2 because congress/insider signals are regulatory records.
+    ("Quiver Quantitative", "quiver", 2, 0.75,
+     "Congressional stock-trade disclosures (STOCK Act), corporate insider "
+     "Form 4 trades (parsed with $ size / direction), WSB aggregate sentiment, "
+     "and Google Trends search-attention per ticker. NOTE: Quiver is PAID-ONLY "
+     "as of Aug 2026 (min ~$30/mo). Unique regulatory alpha; enable only with "
+     "a valid QUIVER_QUANT_API_KEY."),
+    # StockTwits: legacy. DIRECT SIGNUPS ARE CLOSED (api.stocktwits.com/developers
+    # as of Aug 2026). Adapter still works if you have a legacy token; otherwise
+    # use ApeWisdom + Finnhub Social for free equivalents.
+    ("StockTwits", "stocktwits", 3, 0.6,
+     "Ticker-scoped finance social streams with native Bullish/Bearish tags. "
+     "LEGACY: StockTwits closed NEW developer signups as of Aug 2026. Only "
+     "enable if you already have a legacy STOCKTWITS_ACCESS_TOKEN. New "
+     "deployments: use ApeWisdom + Finnhub Social instead."),
 ]
 
 # (company_name, account_name, rss_feed_url) -- fill in as IR feeds are

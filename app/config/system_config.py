@@ -75,14 +75,83 @@ DEFAULTS: dict[str, tuple[Any, str, str]] = {
         "topic for any channel not listed here.",
     ),
 
-    # --- Sprint 7: X integration rollout ---
+    # --- Sprint 7: social + alternative-signal integrations ---
+    # X (Twitter) is intentionally deprecated. X's API is expensive,
+    # fragile, and easily replaced by the 4 sources below.
+    # IMPORTANT (Aug 2026 reality check):
+    #   * StockTwits closed NEW developer signups per api.stocktwits.com/
+    #     developers. The adapter still works if you already have a token,
+    #     but new users should use ApeWisdom + Finnhub Social instead.
+    #   * Quiver Quantitative no longer has a free API tier (now $30/mo
+    #     minimum). Still valuable for regulatory signals, but not free.
+    #
+    # Truly free + actually-signup-able replacements (recommended):
+    #   1) Finnhub Social Sentiment (gate: finnhub_social_sentiment_enabled)
+    #      -- free on your existing FINNHUB_API_KEY plan. Reddit + X
+    #      mention counts + per-ticker -1..1 sentiment score. Zero extra cost.
+    #   2) ApeWisdom (gate: apewisdom_integration_enabled) -- free, no
+    #      signup, no API key. Top-ranked WSB + 4chan mention counts with
+    #      bull/bear/SPY proportions and 24h rank change.
+    #   3) Reddit (gate: reddit_integration_enabled) -- raw r/wallstreetbets,
+    #      r/stocks, r/investing newest-post streams, ticker-extracted.
+    #   4) StockTwits (gate: stocktwits_integration_enabled) -- adapter
+    #      works, but NEW signups are closed as of Aug 2026. Left in place
+    #      for legacy token holders.
+    #   5) Quiver Quantitative (gate: quiver_quant_integration_enabled)
+    #      -- paid-only now (congress trades, insider trades, WSB aggregates,
+    #      Google Trends). Worth it for the unique regulatory signals.
+    "stocktwits_integration_enabled": (
+        False,
+        "ingestion",
+        "Feature flag for the StockTwits adapter (ticker-scoped finance "
+        "social streams with native bullish/bearish tags). NOTE: StockTwits "
+        "CLOSED new developer signups as of Aug 2026. Only enable if you "
+        "already have a legacy STOCKTWITS_ACCESS_TOKEN. Otherwise use "
+        "ApeWisdom + Finnhub Social instead (free, actually signup-able).",
+    ),
+    "reddit_integration_enabled": (
+        False,
+        "ingestion",
+        "Feature flag for the Reddit adapter (retail sentiment via "
+        "r/wallstreetbets, r/stocks, r/investing). Free OAuth tier, 60 "
+        "req/min. Requires REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET + "
+        "REDDIT_USER_AGENT (create a 'script' app at reddit.com/prefs/apps).",
+    ),
+    "quiver_quant_integration_enabled": (
+        False,
+        "ingestion",
+        "Feature flag for the Quiver Quantitative adapter (congress "
+        "trades, insider trades, WSB sentiment, Google Trends). NOTE: "
+        "Quiver no longer has a free API tier (min ~$30/mo as of Aug 2026). "
+        "Requires QUIVER_QUANT_API_KEY. Worth it for the unique regulatory "
+        "signals; otherwise use ApeWisdom + Reddit for free WSB coverage.",
+    ),
+    "apewisdom_integration_enabled": (
+        False,
+        "ingestion",
+        "Feature flag for the ApeWisdom adapter (r/wallstreetbets + 4chan "
+        "mention counts, rank deltas, bull/bear/SPY proportions). Free, "
+        "no signup, no API key needed -- just flip this flag on. "
+        "Replaces the StockTwits direct adapter for new deployments "
+        "(StockTwits closed new signups Aug 2026).",
+    ),
+    "finnhub_social_sentiment_enabled": (
+        True,
+        "ingestion",
+        "Enable Finnhub /stock/social-sentiment endpoint alongside the "
+        "company-news stream. Uses your existing FINNHUB_API_KEY at zero "
+        "extra cost (1 extra request/ticker per poll; 60 req/min free pool "
+        "covers news + social comfortably). Emits per-ticker Reddit + X "
+        "mention counts and a weighted -1..1 sentiment score. On by default "
+        "because it's the cheapest, highest-signal social source in the stack.",
+    ),
     "x_integration_enabled": (
         False,
         "ingestion",
-        "Feature flag for the X (Twitter) adapter. Defaults off for "
-        "gradual, monitored rollout per the project's risk-mitigation "
-        "plan -- Tier-1 accounts' announcements are also mirrored via "
-        "Company IR RSS regardless of this flag.",
+        "DEPRECATED. X (Twitter) integration has been replaced by "
+        "Finnhub Social Sentiment + ApeWisdom + Reddit + Quiver. X's API "
+        "is expensive (~$200/mo Basic), fragile, and the alternatives cover "
+        "more signal types for $0-30/mo total. Leave this flag off.",
     ),
 }
 

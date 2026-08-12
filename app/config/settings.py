@@ -28,12 +28,33 @@ class Settings(BaseSettings):
     mexc_api_secret: str = ""
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
-    news_api_key: str = ""
+    # Sprint 4: financial news ingestion. Finnhub's company-news endpoint
+    # is ticker-scoped (see app.ingestion.news.finnhub_client), replacing
+    # an earlier NewsAPI-backed integration that used free-text company
+    # name queries.
+    finnhub_api_key: str = ""
     sec_user_agent: str = "Market-Intelligence-Bot/1.0"
     
-    # X API (Sprint 7)
+    # X API (Sprint 7) — DEPRECATED. Replaced by the 3 alternatives below
+    # (Finnhub Social Sentiment + ApeWisdom + Reddit + Quiver). X's API is
+    # expensive/fragile; the alternatives cover finance social + retail
+    # sentiment + regulatory signals better for free/cheap. Left in place
+    # only if you explicitly want to re-enable it (not recommended).
     x_api_key: str = ""
     x_api_secret: str = ""
+
+    # Sprint 7: social + alternative-signal integrations (replacing X).
+    # Aug-2026 reality: StockTwits closed NEW signups (api.stocktwits.com/
+    # developers); Quiver is paid-only now (~$30/mo). Best free sources:
+    #   - Finnhub Social Sentiment: free on your existing FINNHUB_API_KEY
+    #     plan (1 extra req/ticker per poll, 60 req/min free pool)
+    #   - ApeWisdom WSB: FREE, no signup, no API key needed
+    #   - Reddit OAuth: free 60 req/min (script app)
+    stocktwits_access_token: str = ""
+    reddit_client_id: str = ""
+    reddit_client_secret: str = ""
+    reddit_user_agent: str = "MarketIntelBot/0.1"
+    quiver_quant_api_key: str = ""
     
     # Application
     app_env: str = "development"
@@ -52,6 +73,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
 
 
 @lru_cache()

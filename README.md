@@ -9,7 +9,7 @@ Real-time market intelligence platform that continuously monitors 52 MEXC stock-
 - **News Intelligence**: Automated ingestion from financial news, SEC EDGAR, and company IR
 - **AI Analysis**: Structured event classification, entity extraction, and impact analysis with cost controls
 - **Opportunity Scoring**: LONG/SHORT opportunity scores with configurable weights and historical validation
-- **Telegram Alerts**: Multi-channel alert delivery (BREAKING, LONG, SHORT, MACRO, MARKET, DAILY)
+- **Telegram Alerts**: Single-chat alert delivery with clear type labels (🚨BREAKING, 🟢LONG, 🔴SHORT, 🌐MACRO, 📊MARKET, 📋DAILY, 🔎RESEARCH) — all alerts land in one chat prefixed by type so you can scan at a glance
 - **Thesis Tracking**: User-created investment theses with supporting/contradicting evidence
 - **Graceful Degradation**: Explicit fallback modes when external services fail (no silent failures)
 
@@ -83,10 +83,42 @@ Telegram Delivery
 - Daily AI spend tracking + cap enforcement
 
 ### Sprint 6: Telegram Alerts
-- Bot setup + 7 channels (BREAKING, LONG, SHORT, MACRO, MARKET, DAILY, RESEARCH)
-- Alert templates with structured fields
+- **Single-chat delivery** (recommended): All 7 alert types (BREAKING, LONG, SHORT, MACRO, MARKET, DAILY, RESEARCH) land in ONE Telegram chat/channel, each prefixed with a type label + emoji so you can scan at a glance:
+  - 🚨 **BREAKING** — only for CRITICAL-tier LONG/SHORT/MACRO (automatically mirrored from their normal alert)
+  - 🟢 **LONG** — bullish opportunities
+  - 🔴 **SHORT** — bearish opportunities
+  - 🌐 **MACRO** — macro-economic events affecting multiple assets
+  - 📊 **MARKET ANOMALY** — price/volume/OI anomalies
+  - 📋 **DAILY** — daily briefing (macro regime, top developments, watchlist)
+  - 🔎 **RESEARCH** — thesis changes and low-signal research items
+- Alert templates with structured fields (score, catalyst, fundamental impact, price reaction, volume, cross-asset effects, confidence, sources)
 - Alert decision logic (thresholds: <50 none, 50-65 watch, 65-80 opp, 80-90 high, 90+ critical)
 - Daily briefing generation
+
+#### Telegram Setup Instructions
+
+You only need **one bot + one chat/channel** for all 7 alert types — they are differentiated by labels, not by separate chats.
+
+**1. Get TELEGRAM_BOT_TOKEN:**
+- Open Telegram, search for `@BotFather`
+- Send `/newbot`
+- Follow prompts: give your bot a display name, then a unique username ending in `bot` (e.g. `market_intel_alerts_bot`)
+- BotFather replies with a token like `123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ` — copy this as `TELEGRAM_BOT_TOKEN`
+
+**2. Get TELEGRAM_CHAT_ID (where all alerts get sent):**
+- Create a Telegram group or channel (or just plan to message the bot directly for testing)
+- Add your bot to that group/channel (make it an admin if you want it to post to a channel)
+- Send any message in the group (e.g. "test")
+- In a browser, visit: `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+- Look for `"chat":{"id": -1001234567890, ...}` in the JSON response — that number (including the minus sign for groups/channels, or a positive number for a direct bot chat) is your `TELEGRAM_CHAT_ID`
+
+**3. Add to `.env`:**
+```
+TELEGRAM_BOT_TOKEN=123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ
+TELEGRAM_CHAT_ID=-1001234567890
+```
+
+> **Advanced (optional — not required)**: If you later prefer separate chats *or* Telegram Topics within a single supergroup, you can configure `telegram_channel_map` in the `system_config` table with per-channel `{chat_id, message_thread_id}` overrides. See `get_channel_chat_id` in `app/workers/alerts.py` for the resolution logic. Out of the box, nothing needs to be configured beyond the two env vars above.
 
 ### Sprint 7: X Integration (After Core Stable)
 - X ingestion adapter (Tier-1: company accounts, CEOs, regulators)
@@ -117,7 +149,7 @@ cp .env.example .env
 - `OPENAI_MODEL`: Chat completions model used for event analysis (default `gpt-4o-mini`)
 - `AI_DAILY_SPEND_CAP_USD`: Hard daily cap on LLM spend (default `100.0`); also editable at runtime via the `system_config` table (key `ai_daily_spend_cap_usd`)
 - `MEXC_API_KEY`, `MEXC_API_SECRET`: MEXC market data API (read-only)
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`: Telegram bot credentials
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`: Telegram bot credentials — **only one chat needed.** All 7 alert types (BREAKING/LONG/SHORT/MACRO/MARKET/DAILY/RESEARCH) are delivered to this single chat, each labeled with a type prefix + emoji. See Sprint 6 setup for step-by-step instructions.
 - `NEWS_API_KEY`: Financial news API (NewsAPI or equivalent)
 
 ### System Configuration
@@ -129,6 +161,7 @@ All weights, thresholds, and SLA targets are stored in the `system_config` table
 - SLA targets (p50/p95 per source tier)
 - AI daily spend cap
 - Recalculation intervals
+- `telegram_channel_map` (optional advanced): Override per-channel routing to separate chats or Telegram Topics — not needed for the default single-chat setup
 
 ## Running the Application
 

@@ -52,7 +52,27 @@ class OpenAIError(ExternalServiceError):
 
 
 class XAPIError(ExternalServiceError):
-    """Raised when X (Twitter) API calls fail (Sprint 7)."""
+    """Raised when X (Twitter) API calls fail (Sprint 7 -- deprecated; use StockTwits/Reddit/Quiver)."""
+    pass
+
+
+class StockTwitsAPIError(ExternalServiceError):
+    """Raised when StockTwits API calls fail (Sprint 7: social sentiment, ticker-scoped streams)."""
+    pass
+
+
+class RedditAPIError(ExternalServiceError):
+    """Raised when Reddit API calls fail (Sprint 7: retail sentiment, subreddit streams)."""
+    pass
+
+
+class QuiverQuantAPIError(ExternalServiceError):
+    """Raised when Quiver Quantitative API calls fail (Sprint 7: congressional trades, insider, WSB, Google Trends)."""
+    pass
+
+
+class ApeWisdomAPIError(ExternalServiceError):
+    """Raised when ApeWisdom API calls fail (Sprint 7: r/wallstreetbets + 4chan mention aggregator, no API key required)."""
     pass
 
 

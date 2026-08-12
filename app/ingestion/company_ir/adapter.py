@@ -15,7 +15,11 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional, Sequence
 
-import feedparser
+try:
+    import feedparser  # noqa: F401
+    _FEEDPARSER_AVAILABLE = True
+except ImportError:
+    _FEEDPARSER_AVAILABLE = False
 
 from app.exceptions import RSSFeedError
 from app.ingestion.base import IngestionError, NormalizedEvent, SourceAdapter
@@ -41,9 +45,13 @@ class CompanyIRAdapter(SourceAdapter):
         return hashlib.sha256(f"{feed_url}:{entry_id}".encode("utf-8")).hexdigest()[:32]
 
     async def fetch_events(self, since: Optional[datetime] = None) -> Sequence[NormalizedEvent]:
+        if not _FEEDPARSER_AVAILABLE:
+            logger.warning("Company IR RSS adapter disabled: feedparser is not installed")
+            return []
+        import feedparser as _feedparser
         events: list[NormalizedEvent] = []
         for feed_source in self._feeds:
-            parsed = feedparser.parse(feed_source.feed_url)
+            parsed = _feedparser.parse(feed_source.feed_url)
             if parsed.bozo and not parsed.entries:
                 # bozo=True with zero entries means the feed genuinely
                 # failed to parse, as opposed to a minor XML quirk
