@@ -38,14 +38,14 @@ services:
       - key: FINNHUB_API_KEY
         sync: false
 
+  - type: redis
+    name: trading-news-bot-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+
 databases:
   - name: trading-news-bot-db
     databaseName: trading_news_bot
     user: trading_news_bot
     plan: starter
     postgresMajorVersion: "16"
-
-redis:
-  - name: trading-news-bot-redis
-    plan: starter
-    maxmemoryPolicy: allkeys-lru
