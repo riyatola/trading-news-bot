@@ -26,22 +26,25 @@ services:
           name: trading-news-bot-redis
           property: connectionString
       - key: OPENAI_API_KEY
-        sync: false
+        sync: true
       - key: MEXC_API_KEY
-        sync: false
+        sync: true
       - key: MEXC_API_SECRET
-        sync: false
+        sync: true
       - key: TELEGRAM_BOT_TOKEN
-        sync: false
+        sync: true
       - key: TELEGRAM_CHAT_ID
-        sync: false
+        sync: true
       - key: FINNHUB_API_KEY
-        sync: false
+        sync: true
 
   - type: redis
     name: trading-news-bot-redis
     plan: starter
     maxmemoryPolicy: allkeys-lru
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
 
 databases:
   - name: trading-news-bot-db

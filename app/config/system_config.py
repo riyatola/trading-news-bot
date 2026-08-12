@@ -127,7 +127,7 @@ DEFAULTS: dict[str, tuple[Any, str, str]] = {
         "signals; otherwise use ApeWisdom + Reddit for free WSB coverage.",
     ),
     "apewisdom_integration_enabled": (
-        False,
+        True,
         "ingestion",
         "Feature flag for the ApeWisdom adapter (r/wallstreetbets + 4chan "
         "mention counts, rank deltas, bull/bear/SPY proportions). Free, "
