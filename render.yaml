@@ -8,7 +8,7 @@ services:
     dockerfilePath: ./Dockerfile
     plan: starter
     healthCheckPath: /health
-    autoDeploy: yes
+    autoDeploy: true
     envVars:
       - key: APP_ENV
         value: production
